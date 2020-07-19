@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Loosly based on this article: https://opensource.com/article/19/3/move-your-dotfiles-version-control
+
+reponame="dotfiles"
+inpath=`realpath "$1"`
+
+# See if inpath is already in $HOME/dotfiles, (meaning it is already tracked)
+
+if [[ $inpath == *"$HOME/$reponame"* ]]; then
+	echo "File already tracked"
+	exit
+fi
+
+# Find relative path (path after home directory) and filename
+
+relpath=${inpath#$HOME}
+dirpath=`dirname "$relpath"`
+
+outpath="$HOME/$reponame$relpath"
+
+mkdir -p "$HOME/$reponame$dirpath"
+
+# See if config file is already in dotfile repo (tracked previously)
+# If not, copy given file to dotfile repo folder
+
+if [ ! -f "$outpath" ]; then
+	cp "$inpath" "$outpath"
+fi
+
+ln -nfs "$outpath" "$inpath"
+
+echo "$inpath"
+echo "$outpath"
