@@ -1,0 +1,45 @@
+#!/bin/sh
+
+#TODO:
+#Check if spotifyd is started. - DONE
+#Check if status is "stopped" - DONE (checking if status is playing or paused)
+#Let user start spotifyd from the statusbar if it is not running. - DONE, left click
+#Summary: 2 modes, one for when spotifyd is not running and one for when it is. - DONE with if statements
+#Handle updating better
+#Bug fixing(sometimes just says stopped at the moment)
+#Look at using sp instead of playerctl (more freedom)
+
+function filter {
+	STATUS=$(playerctl status --player=spotifyd --format "{{ status }}")
+	if [ "$STATUS" == 'Playing' ] || [ "$STATUS" == 'Paused' ]
+	then
+		(echo "$STATUS" && playerctl metadata --player=spotifyd --format ": {{ artist }} - {{ title }}") | paste -d '' - -
+	else
+		echo "$STATUS" #Mostly a debug tool, should just indicate that spotifyd is running, but not active
+	fi
+}
+
+# pidof -x mpdup >/dev/null 2>&1 || mpdup >/dev/null 2>&1 &
+
+if ! pgrep -x spotifyd >/dev/null
+then
+	case $BLOCK_BUTTON in
+		1) systemctl --user start spotifyd ; echo "Spotifyd not running"  ;;
+		*) echo "Spotifyd not running" ;;
+	esac
+else
+
+	case $BLOCK_BUTTON in
+		1) filter ; setsid -f "$TERMINAL" -e spt ;;  # left click, open spt
+		2) filter ; notify-send "🎵 Music module" "\- Shows spotify song playing.
+	- ⏸ when paused (TODO).
+	- Left click opens spt.
+	- Middle click pauses.
+	- Scroll changes track.";;  # middle click, show info
+		3) playerctl --player=spotifyd play-pause | filter ;;  # right click, pause/unpause
+		4) playerctl --player=spotifyd previous   | filter ;;  # scroll up, previous
+		5) playerctl --player=spotifyd next   | filter ;;  # scroll down, next
+		6) filter ; "$TERMINAL" -e "$EDITOR" "$0" ;; # shift left, open this file in $EDITOR
+		*) filter ;;
+	esac
+fi
